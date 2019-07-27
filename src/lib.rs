@@ -7,33 +7,22 @@ extern crate error_chain;
 #[macro_use]
 extern crate log;
 
-use std::mem;
 use std::fmt::{Display, Error, Formatter};
+use std::mem;
 use uuid::Uuid;
 
 pub mod errors;
 mod membership;
 
-//mod remoting {
-//  include!(concat!(env!("OUT_DIR"), "/remoting.rs"));
-//}
-mod remoting;
+mod remoting {
+  include!(concat!(env!("OUT_DIR"), "/remoting.rs"));
+}
+//mod remoting;
 
-use crate::remoting::{
-  Endpoint as GRPCEndpoint,
-  NodeId as GRPCNodeId,
-};
+use crate::remoting::{Endpoint, NodeId};
 use std::convert::TryInto;
-use std::cmp::Ordering;
-use twox_hash::XxHash64;
 
 pub struct Cluster;
-
-#[derive(Default, Debug, Ord, PartialOrd, Eq, PartialEq, Clone, Hash)]
-pub struct NodeId { // field order also determines comparator order, so Ord does the right thing
-  pub high: i64,
-  pub low: i64,
-}
 
 impl NodeId {
   pub fn from_uuid(id: Uuid) -> Self {
@@ -57,36 +46,17 @@ impl Display for NodeId {
   }
 }
 
-impl From<GRPCNodeId> for NodeId {
-  fn from(gnode_id: GRPCNodeId) -> Self {
-    NodeId {
-      high: gnode_id.high,
-      low: gnode_id.low,
-    }
+impl AsRef<NodeId> for NodeId {
+  fn as_ref(&self) -> &NodeId {
+    self
   }
-}
-
-impl From<NodeId> for GRPCNodeId {
-  fn from(node_id: NodeId) -> Self {
-    GRPCNodeId {
-      high: node_id.high,
-      low: node_id.low,
-      ..Default::default()
-    }
-  }
-}
-
-#[derive(Default, Debug, Ord, PartialOrd, Eq, PartialEq, Clone, Hash)]
-pub struct Endpoint {
-  pub hostname: String,
-  pub port: u16,
 }
 
 impl Endpoint {
   pub fn new(hostname: String, port: u16) -> Self {
-    Endpoint{
+    Endpoint {
       hostname,
-      port
+      port: port as i32,
     }
   }
 }
@@ -97,32 +67,15 @@ impl Display for Endpoint {
   }
 }
 
-impl From<GRPCEndpoint> for Endpoint {
-  fn from(ep: GRPCEndpoint) -> Self {
-    Endpoint {
-      hostname: ep.hostname,
-      port: ep.port as u16,
-    }
-  }
-}
-
-impl From<Endpoint> for GRPCEndpoint {
-  fn from(ep: Endpoint) -> Self {
-    GRPCEndpoint {
-      hostname: ep.hostname,
-      port: ep.port as i32,
-      ..Default::default()
-    }
+impl AsRef<Endpoint> for Endpoint {
+  fn as_ref(&self) -> &Endpoint {
+    self
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use crate::remoting::{
-    Endpoint as GRPCEndpoint,
-    NodeId as GRPCNodeId,
-  };
-  use crate::{Endpoint, NodeId};
+  use crate::remoting::{Endpoint, NodeId};
   use uuid::Uuid;
 
   #[test]
@@ -134,48 +87,11 @@ mod tests {
   }
 
   #[test]
-  fn node_id_conversion() {
-    let expected = NodeId::new();
-
-    let actual: GRPCNodeId = expected.clone().into();
-    assert_eq!(expected.high, actual.high);
-    assert_eq!(expected.low, actual.low);
-
-    let act2: NodeId = actual.clone().into();
-    assert_eq!(expected.high, act2.high);
-    assert_eq!(expected.low, act2.low);
-  }
-
-  #[test]
   fn display_node_id() {
     let uuid = Uuid::new_v4();
-    let value = format!(
-      "{}",
-      NodeId::from_uuid(uuid.clone())
-    );
+    let value = format!("{}", NodeId::from_uuid(uuid.clone()));
     assert_eq!(uuid.to_string(), value);
     assert_eq!(uuid.to_string(), value.to_string());
-  }
-
-  #[test]
-  fn endpoint_conversion() {
-    let expected = Endpoint {
-      hostname: "somewhere".to_string(),
-      port: 3146,
-    };
-
-    let actual: GRPCEndpoint = expected.clone().into();
-    assert_eq!(expected.hostname, actual.hostname);
-    assert_eq!(expected.port as i32, actual.port);
-
-    let exp2 = GRPCEndpoint {
-      hostname: "someplace.com".to_string(),
-      port: 443,
-      ..Default::default()
-    };
-    let act2: Endpoint = exp2.clone().into();
-    assert_eq!("someplace.com", act2.hostname);
-    assert_eq!(443u16, act2.port);
   }
 
   #[test]
@@ -194,7 +110,7 @@ mod tests {
         hostname: "something".to_string(),
         port: 2345,
       }
-        .to_string()
+      .to_string()
     )
   }
 }

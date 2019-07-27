@@ -1,10 +1,10 @@
 use crate::{Endpoint, NodeId};
 error_chain! {
   errors {
-    InvalidConstraints(k: u32, h: u32, l: u32) {
+    InvalidConstraints(k: usize, h: usize, l: usize) {
       display("Arguments do not satisfy K >= 3 ∧ K > H >= L for (K: {}, H: {}, L: {})", k, h, l)
     }
-    InvalidPermutations(k: u32) {
+    InvalidPermutations(k: usize) {
       display("Ring permutations must be greater than 0 (K: {})", k)
     }
     UUIDAlreadySeen(node: Endpoint, node_id: NodeId) {

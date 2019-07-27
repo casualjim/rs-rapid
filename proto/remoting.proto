@@ -6,6 +6,7 @@ option java_outer_classname = "Remoting";
 
 package remoting;
 
+// MembershipService transport
 service MembershipService {
   rpc sendRequest(RapidRequest) returns (RapidResponse) {}
 }

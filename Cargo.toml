@@ -10,7 +10,7 @@ edition = "2018"
 grpc = "^0.6"
 bytes = "^0.4"
 error-chain = "^0.12"
-uuid = { version = "^0.7", features = ["serde", "v4"] }
+uuid = { version = "^0.7", features = ["serde", "v4", "v3"] }
 tower-grpc = { version = "^0.1", features = ["tower-hyper"] }
 tower-hyper = "^0.1"
 hyper = "^0.12"
@@ -22,7 +22,9 @@ twox-hash = "^1.4"
 
 [dev-dependencies]
 spectral = "*"
+env_logger = "^0.6"
 
 [build-dependencies]
 tower-grpc-build = { version = "^0.1",  features = ["tower-hyper"] }
+prost-build = "^0.5"
 
