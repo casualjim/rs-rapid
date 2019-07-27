@@ -4,3 +4,4 @@ Cargo.lock
 .idea
 #src/remoting.rs
 src/remoting.rs
+*.zst

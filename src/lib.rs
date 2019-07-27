@@ -14,14 +14,14 @@ use uuid::Uuid;
 pub mod errors;
 mod membership;
 
-mod remoting {
-  include!(concat!(env!("OUT_DIR"), "/remoting.rs"));
-}
-//mod remoting;
+//mod remoting {
+//  include!(concat!(env!("OUT_DIR"), "/remoting.rs"));
+//}
+mod remoting;
 
-use crate::remoting::{Endpoint, NodeId};
+//use crate::remoting::{Endpoint, NodeId};
+pub use self::remoting::{Endpoint, NodeId};
 use std::convert::TryInto;
-
 pub struct Cluster;
 
 impl NodeId {
