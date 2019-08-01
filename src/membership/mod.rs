@@ -2,10 +2,25 @@ mod cut_detector;
 mod view;
 
 use self::view::View;
+use crate::errors;
+use crate::remoting::rapid_request::Content;
+use crate::remoting::{RapidRequest, RapidResponse};
+use futures::{future, Future};
+use std::error;
 
 const K_MIN: usize = 3;
 
-//pub struct Service;
+#[derive(Copy, Clone)]
+pub struct Service;
+
+impl Service {
+  pub fn handle_request(
+    &self,
+    request: &RapidRequest,
+  ) -> impl Future<Item = Result<RapidResponse, errors::Error>, Error = errors::Error> {
+    future::err(errors::ErrorKind::Msg("not implemented".to_string()).into())
+  }
+}
 
 #[cfg(test)]
 mod tests {

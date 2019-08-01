@@ -8,24 +8,31 @@ build = "build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-grpc = "^0.6"
 bytes = "^0.4"
 error-chain = "^0.12"
 uuid = { version = "^0.7", features = ["serde", "v4", "v3"] }
-tower-grpc = { version = "^0.1", features = ["tower-hyper"] }
-tower-hyper = "^0.1"
-hyper = "^0.12"
-tower-service = "^0.2"
-tower-util = "^0.1"
 prost = "^0.5"
 log = "^0.4"
 twox-hash = "^1.4"
+futures = "^0.1"
+futures-backoff = "^0.1"
+env_logger = "^0.6"
+warp = "^0.1"
+reqwest = "^0.9"
+ctrlc = "^3.1"
+grpcio = { git="https://github.com/pingcap/grpc-rs", features=["prost-codec", "secure"] }
 
 [dev-dependencies]
 spectral = "*"
-env_logger = "^0.6"
 
 [build-dependencies]
-tower-grpc-build = { version = "^0.1",  features = ["tower-hyper"] }
 prost-build = "^0.5"
+grpcio-compiler = { git="https://github.com/pingcap/grpc-rs", features=["prost-codec"] }
 
+[[bin]]
+name = "server"
+path = "src/bin/server.rs"
+
+[[bin]]
+name = "client"
+path = "src/bin/client.rs"

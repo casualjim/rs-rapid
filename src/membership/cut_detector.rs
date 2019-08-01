@@ -202,7 +202,7 @@ mod tests {
     let alert = alert_message(localhost(src_port), dst, EdgeStatus::Up, ring_number);
 
     let ret = detector.aggregate_for_proposal(&alert);
-    assert_that(&ret).has_length(expected_len + 1);
+    assert_that(&ret).has_length(expected_len);
     assert_that(&detector.known_proposals()).is_equal_to(expected_proposals);
   }
 
