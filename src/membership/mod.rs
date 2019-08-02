@@ -4,9 +4,10 @@ mod view;
 use self::view::View;
 use crate::errors;
 use crate::remoting::rapid_request::Content;
-use crate::remoting::{RapidRequest, RapidResponse};
+use crate::remoting::{JoinResponse, PreJoinMessage, RapidRequest, RapidResponse};
+use crate::TransportFuture;
+use errors::Result;
 use futures::{future, Future};
-use std::error;
 
 const K_MIN: usize = 3;
 
@@ -17,8 +18,20 @@ impl Service {
   pub fn handle_request(
     &self,
     request: &RapidRequest,
-  ) -> impl Future<Item = Result<RapidResponse, errors::Error>, Error = errors::Error> {
-    future::err(errors::ErrorKind::Msg("not implemented".to_string()).into())
+  ) -> impl Future<Item = Result<RapidResponse>, Error = errors::Error> {
+    //    match request.content {
+    //      Some(ref cnt) => match cnt {
+    //        Content::PreJoinMessage(v) => self.handle_pre_join(v),
+    //        _ => future::ok(Ok(RapidResponse { content: None })),
+    //      },
+    //      None => future::err("e".into()),
+    //    }
+    future::err("not implemented".into())
+  }
+
+  fn handle_pre_join(&self, msg: &PreJoinMessage) -> impl Future<Item = Result<RapidResponse>, Error = errors::Error> {
+    use crate::remoting::rapid_response::Content;
+    future::ok(Ok(RapidResponse { content: None }))
   }
 }
 
@@ -26,7 +39,6 @@ impl Service {
 mod tests {
   use crate::remoting::{AlertMessage, EdgeStatus};
   use crate::Endpoint;
-  use spectral::assert_that;
 
   pub const K: usize = 10usize;
   pub const H: usize = 8usize;
@@ -49,7 +61,7 @@ mod tests {
   }
 
   pub fn localhost(port: u16) -> Endpoint {
-    Endpoint::new("127.0.0.1".to_string(), port)
+    Endpoint::new("127.0.0.1", port)
   }
 
 }

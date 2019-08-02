@@ -1,6 +1,5 @@
 use crate::errors::{ErrorKind, Result};
-use crate::remoting::{AlertMessage, EdgeStatus, JoinStatusCode};
-use crate::remoting::{Endpoint, NodeId};
+use crate::remoting::{Endpoint, JoinStatusCode, NodeId};
 use std::collections::{BTreeMap, BTreeSet};
 use std::hash::Hash;
 use std::hash::Hasher;

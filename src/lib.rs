@@ -7,10 +7,7 @@ extern crate error_chain;
 #[macro_use]
 extern crate log;
 
-#[macro_use]
-extern crate futures;
-
-use std::fmt::{Display, Error, Formatter};
+use std::fmt::{Display, Formatter};
 use std::mem;
 use std::time::Duration;
 use uuid::Uuid;
@@ -90,13 +87,10 @@ pub mod transport;
     builder.build()
   }
 }*/
-pub mod remoting;
+mod remoting;
 
-//type Result<T: Sized> = std::result::Result<T, errors::RapidError>;
-
-//use crate::remoting::{Endpoint, NodeId};
 pub use crate::remoting::{Endpoint, NodeId};
-use crate::remoting::{RapidRequest, RapidResponse};
+pub use crate::remoting::{RapidRequest, RapidResponse};
 
 use futures::Future;
 use std::convert::TryInto;
@@ -104,7 +98,7 @@ use std::convert::TryInto;
 type TransportFuture = dyn Future<Item = RapidResponse, Error = errors::Error> + Send;
 pub struct Cluster;
 
-trait Transport {
+pub trait Transport {
   fn send(&mut self, to: &Endpoint, request: &RapidRequest, max_tries: usize) -> Box<TransportFuture>;
 }
 
@@ -151,9 +145,9 @@ impl AsRef<NodeId> for NodeId {
 }
 
 impl Endpoint {
-  pub fn new(hostname: String, port: u16) -> Self {
+  pub fn new<T: Into<String>>(hostname: T, port: u16) -> Self {
     Endpoint {
-      hostname,
+      hostname: hostname.into(),
       port: port as i32,
     }
   }

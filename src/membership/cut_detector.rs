@@ -2,7 +2,7 @@ use super::View;
 use super::K_MIN;
 use crate::errors::*;
 use crate::remoting::Endpoint;
-use crate::remoting::{AlertMessage, EdgeStatus, JoinStatusCode};
+use crate::remoting::{AlertMessage, EdgeStatus};
 use std::collections::{HashMap, HashSet};
 
 ///
@@ -177,7 +177,7 @@ impl MultiNodeCutDetector {
 #[cfg(test)]
 mod tests {
   use super::MultiNodeCutDetector;
-  use crate::membership::tests::{alert_message, init, localhost};
+  use crate::membership::tests::{alert_message, localhost};
   use crate::membership::tests::{H, K, L};
   use crate::membership::View;
   use crate::remoting::{EdgeStatus, NodeId};
@@ -281,7 +281,7 @@ mod tests {
     let num_nodes = 3;
     let mut endpoints = vec![];
     for i in 0..num_nodes {
-      endpoints.push(Endpoint::new("127.0.0.2".to_string(), 2 + i as u16));
+      endpoints.push(Endpoint::new("127.0.0.2", 2 + i as u16));
     }
 
     let mut proposal = vec![];
@@ -297,9 +297,9 @@ mod tests {
   #[test]
   fn below_l() {
     let mut detector = MultiNodeCutDetector::new(K, H, L).unwrap();
-    let dst1 = Endpoint::new("127.0.0.2".to_string(), 2);
-    let dst2 = Endpoint::new("127.0.0.3".to_string(), 2);
-    let dst3 = Endpoint::new("127.0.0.4".to_string(), 2);
+    let dst1 = Endpoint::new("127.0.0.2", 2);
+    let dst2 = Endpoint::new("127.0.0.3", 2);
+    let dst3 = Endpoint::new("127.0.0.4", 2);
 
     fill_rings(&mut detector, H - 1, dst1.clone());
     fill_rings(&mut detector, L - 1, dst2.clone());
@@ -311,9 +311,9 @@ mod tests {
   #[test]
   fn multiple_blockers_past_h() {
     let mut detector = MultiNodeCutDetector::new(K, H, L).unwrap();
-    let dst1 = Endpoint::new("127.0.0.2".to_string(), 2);
-    let dst2 = Endpoint::new("127.0.0.3".to_string(), 2);
-    let dst3 = Endpoint::new("127.0.0.4".to_string(), 2);
+    let dst1 = Endpoint::new("127.0.0.2", 2);
+    let dst2 = Endpoint::new("127.0.0.3", 2);
+    let dst3 = Endpoint::new("127.0.0.4", 2);
 
     fill_rings(&mut detector, H - 1, dst1.clone());
     fill_rings(&mut detector, H - 1, dst2.clone());
@@ -331,9 +331,9 @@ mod tests {
   #[test]
   fn blocking_three_blockers() {
     let mut detector = MultiNodeCutDetector::new(K, H, L).unwrap();
-    let dst1 = Endpoint::new("127.0.0.2".to_string(), 2);
-    let dst2 = Endpoint::new("127.0.0.3".to_string(), 3);
-    let dst3 = Endpoint::new("127.0.0.4".to_string(), 4);
+    let dst1 = Endpoint::new("127.0.0.2", 2);
+    let dst2 = Endpoint::new("127.0.0.3", 3);
+    let dst3 = Endpoint::new("127.0.0.4", 4);
 
     fill_rings(&mut detector, H - 1, dst1.clone());
     fill_rings(&mut detector, H - 1, dst2.clone());
@@ -349,8 +349,8 @@ mod tests {
   #[test]
   fn blocking_one_blocker() {
     let mut detector = MultiNodeCutDetector::new(K, H, L).unwrap();
-    let dst1 = Endpoint::new("127.0.0.2".to_string(), 2);
-    let dst2 = Endpoint::new("127.0.0.3".to_string(), 3);
+    let dst1 = Endpoint::new("127.0.0.2", 2);
+    let dst2 = Endpoint::new("127.0.0.3", 3);
 
     fill_rings(&mut detector, H - 1, dst1.clone());
     fill_rings(&mut detector, H - 1, dst2.clone());
@@ -363,7 +363,7 @@ mod tests {
   #[test]
   fn sanity_check() {
     let mut detector = MultiNodeCutDetector::new(K, H, L).unwrap();
-    let dst = Endpoint::new("127.0.0.2".to_string(), 2);
+    let dst = Endpoint::new("127.0.0.2", 2);
 
     fill_rings(&mut detector, H - 1, dst.clone());
     verify_proposal_aggregation(&mut detector, H as u16, dst.clone(), (H - 1) as i32, 1, 1);
@@ -385,6 +385,6 @@ mod tests {
     assert!(lgth.is_err(), "expected an error result for l > h");
 
     let hgtk = MultiNodeCutDetector::new(3, 4, 1);
-    assert!(hgtk.is_err(), "expected an error resutlf for h > k");
+    assert!(hgtk.is_err(), "expected an error result for h > k");
   }
 }

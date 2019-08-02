@@ -14,11 +14,9 @@ uuid = { version = "^0.7", features = ["serde", "v4", "v3"] }
 prost = "^0.5"
 log = "^0.4"
 twox-hash = "^1.4"
+tokio = "0.1.22"
 futures = "^0.1"
-futures-backoff = "^0.1"
 env_logger = "^0.6"
-warp = "^0.1"
-reqwest = "^0.9"
 ctrlc = "^3.1"
 grpcio = { git="https://github.com/pingcap/grpc-rs", features=["prost-codec", "secure"] }
 
