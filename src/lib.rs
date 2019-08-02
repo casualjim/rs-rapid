@@ -16,7 +16,7 @@ pub mod errors;
 mod membership;
 pub mod transport;
 
-/*mod remoting {
+mod remoting {
   include!(concat!(env!("OUT_DIR"), "/remoting.rs"));
 
   const METHOD_MEMBERSHIP_SERVICE_SEND_REQUEST: ::grpcio::Method<RapidRequest, RapidResponse> = ::grpcio::Method {
@@ -86,8 +86,8 @@ pub mod transport;
     });
     builder.build()
   }
-}*/
-mod remoting;
+}
+//mod remoting;
 
 pub use crate::remoting::{Endpoint, NodeId};
 pub use crate::remoting::{RapidRequest, RapidResponse};
