@@ -223,7 +223,6 @@ mod tests {
   use crate::remoting::{create_membership_service, MembershipService, MembershipServiceClient};
   use crate::transport::*;
   use crate::{Endpoint, RapidRequest, RapidResponse, Transport};
-  use futures::prelude::*;
   use grpcio::{ChannelBuilder, EnvBuilder, RpcContext, RpcStatus, ServerBuilder, UnarySink};
   use spectral::prelude::*;
   use std::sync::Arc;

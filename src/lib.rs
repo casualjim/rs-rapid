@@ -15,8 +15,9 @@ use uuid::Uuid;
 pub mod errors;
 mod membership;
 pub mod transport;
+pub use transport::Config as TransportConfig;
 
-mod remoting {
+/*mod remoting {
   include!(concat!(env!("OUT_DIR"), "/remoting.rs"));
 
   const METHOD_MEMBERSHIP_SERVICE_SEND_REQUEST: ::grpcio::Method<RapidRequest, RapidResponse> = ::grpcio::Method {
@@ -86,8 +87,8 @@ mod remoting {
     });
     builder.build()
   }
-}
-//mod remoting;
+}*/
+mod remoting;
 
 pub use crate::remoting::{Endpoint, NodeId};
 pub use crate::remoting::{RapidRequest, RapidResponse};
@@ -102,15 +103,20 @@ pub trait Transport {
   fn send(&mut self, to: &Endpoint, request: &RapidRequest, max_tries: usize) -> Box<TransportFuture>;
 }
 
+pub trait Broadcaster {
+  fn broadcast(&mut self, request: &RapidRequest) -> Vec<Box<TransportFuture>>;
+  fn set_membership(&mut self, members: &[Endpoint]);
+}
+
 pub struct Config {
-  // pub transport: TransportConfig,
+  pub transport: TransportConfig,
   pub failure_detector_interval: Duration,
 }
 
 impl Default for Config {
   fn default() -> Self {
     Config {
-      // transport: TransportConfig::default(),
+      transport: TransportConfig::default(),
       failure_detector_interval: Duration::from_secs(1),
     }
   }

@@ -14,7 +14,7 @@ use std::collections::{HashMap, HashSet};
 /// The output of this filter gives us almost-everywhere agreement
 ///
 #[derive(Default, Debug)]
-struct MultiNodeCutDetector {
+pub struct MultiNodeCutDetector {
   k: usize,
   h: usize,
   l: usize,

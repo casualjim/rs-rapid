@@ -1,6 +1,8 @@
+mod broadcasting;
 mod cut_detector;
 mod view;
 
+use self::cut_detector::MultiNodeCutDetector;
 use self::view::View;
 use crate::errors;
 use crate::remoting::rapid_request::Content;
@@ -8,11 +10,16 @@ use crate::remoting::{JoinResponse, PreJoinMessage, RapidRequest, RapidResponse}
 use crate::TransportFuture;
 use errors::Result;
 use futures::{future, Future};
+use std::sync::{Arc, Mutex};
 
 const K_MIN: usize = 3;
 
-#[derive(Copy, Clone)]
-pub struct Service;
+#[derive(Clone)]
+pub struct Service {
+  cut_detection: Arc<Mutex<MultiNodeCutDetector>>,
+  view: Arc<Mutex<View>>,
+  update_lock: Arc<Mutex<()>>,
+}
 
 impl Service {
   pub fn handle_request(
