@@ -1,5 +1,8 @@
 [![Build Status](https://travis-ci.org/lalithsuresh/rapid.svg?branch=master)](https://travis-ci.org/lalithsuresh/rapid) [![Coverage Status](https://coveralls.io/repos/github/lalithsuresh/rapid/badge.svg?branch=master)](https://coveralls.io/github/lalithsuresh/rapid?branch=master)
 
+## I'm using this project to learn rust because it's small but varied as it needs specific datastructures, has some concurrency needs and interprocess as well as intraprocess communication. You're more than welcome to comment, send PR's or just share criticism in issues. But it's definitely not a good example of writing rust code as this is my 2nd thing I write in rust.
+
+
 What is Rapid?
 ==============
 

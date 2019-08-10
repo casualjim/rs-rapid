@@ -1,13 +1,15 @@
-use crate::remoting::rapid_request::Content;
-use crate::remoting::{AlertMessage, BatchedAlertMessage};
-use crate::{errors, Broadcaster, Endpoint, RapidRequest, RapidResponse, Transport};
+use std::sync::{Arc, Mutex, RwLock};
+use std::thread;
+use std::time::Duration;
+
 use futures::prelude::*;
 use futures::sync::mpsc;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use std::sync::{Arc, RwLock};
-use std::thread;
-use std::time::Duration;
+
+use crate::remoting::rapid_request::Content;
+use crate::remoting::{AlertMessage, BatchedAlertMessage};
+use crate::{errors, Broadcaster, Endpoint, RapidRequest, RapidResponse, Transport};
 
 struct UnicastToAll<T: Transport> {
   members: Arc<RwLock<Vec<Endpoint>>>,
@@ -61,13 +63,13 @@ where
 }
 
 struct AlertBatcher {
-  client: Arc<dyn Broadcaster>,
+  client: Arc<Mutex<dyn Broadcaster + Send>>,
   addr: Endpoint,
-  sender: Option<mpsc::UnboundedSender<AlertMessage>>,
+  sender: Option<mpsc::Sender<AlertMessage>>,
 }
 
 impl AlertBatcher {
-  pub fn new(client: Arc<dyn Broadcaster>, addr: Endpoint) -> Self {
+  pub fn new(client: Arc<Mutex<dyn Broadcaster + Send>>, addr: Endpoint) -> Self {
     AlertBatcher {
       client,
       addr,
@@ -76,43 +78,80 @@ impl AlertBatcher {
   }
 
   pub fn start(&mut self) {
-    let (sender, receiver) = mpsc::unbounded::<AlertMessage>();
-    thread::spawn(|| {
-      tokio_batch::Chunks::new(receiver, 100, Duration::from_secs(1)).for_each(|messages| {
-        let v = BatchedAlertMessage {
-          sender: Some(self.addr.clone()),
-          messages,
-        };
-        let responses = self.client.clone().broadcast(&RapidRequest {
-          content: Some(Content::BatchedAlertMessage(v)),
-        });
-        let f = futures::future::join_all(responses.map(|v|v.map_err(|_| ())).map_err(|_| ()).map(|_| ());
-        f
-      })
+    let (sender, receiver) = mpsc::channel::<AlertMessage>(500);
+    let addr = self.addr.clone();
+    let client = self.client.clone();
+    thread::spawn(move || {
+      tokio_batch::Chunks::new(receiver, 100, Duration::from_secs(1))
+        .map_err(|e| error!("failed to send alert batch: {:?}", e))
+        .for_each(|messages| {
+          let v = BatchedAlertMessage {
+            sender: Some(addr.clone()),
+            messages,
+          };
+          let responses = client.lock().unwrap().broadcast(&RapidRequest {
+            content: Some(Content::BatchedAlertMessage(v)),
+          });
+          futures::future::join_all(responses).map(|_| ()).map_err(|_| ())
+        })
+        .wait()
+        .map_err(|_| ())
+        .unwrap_or_default();
+      debug!("finished batching alerts")
     });
 
     self.sender = Some(sender);
   }
 
-  pub fn schedule(&self, msg: AlertMessage) {
+  pub fn stop(&mut self) {
+    self.sender.take();
+  }
+
+  pub fn schedule(&mut self, msg: AlertMessage) {
     self
       .sender
-      .as_ref()
+      .as_mut()
       .map(|tx| {
-        tx.unbounded_send(msg.clone())
+        tx.try_send(msg.clone())
           .map(|_| debug!("enqueued alert message: {:?}", &msg))
           .map_err(|e| error!("failed to enqueue {:?}: {}", &msg, e))
       })
-      .unwrap_or(Ok(()));
+      .unwrap_or(Ok(()))
+      .unwrap();
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use crate::membership::broadcasting::UnicastToAll;
-  use crate::membership::tests::localhost;
-  use crate::{errors, Broadcaster, Endpoint, RapidRequest, RapidResponse, Transport};
   use futures::{future, Future};
+
+  use crate::membership::broadcasting::{AlertBatcher, UnicastToAll};
+  use crate::membership::tests::{init, localhost};
+  use crate::remoting::AlertMessage;
+  use crate::{errors, Broadcaster, Endpoint, RapidRequest, RapidResponse, Transport};
+  use std::sync::{Arc, Mutex, RwLock};
+  use std::thread;
+  use std::time::Duration;
+
+  #[test]
+  fn alertbatcher() {
+    init();
+    let client = Arc::new(Mutex::new(UnicastToAll::new(CountingClient { count: 0 })));
+    let addr = localhost(1);
+    let mut alerter = AlertBatcher::new(client, addr);
+    alerter.start();
+    alerter.schedule(AlertMessage {
+      edge_src: None,
+      edge_dst: None,
+      edge_status: 1,
+      configuration_id: -1,
+      ring_number: vec![1, 2, 3],
+      node_id: None,
+      metadata: None,
+    });
+    thread::sleep(Duration::from_secs(3));
+    alerter.stop();
+  }
 
   #[test]
   fn broadcaster_sanity() {
@@ -130,6 +169,7 @@ mod tests {
   struct CountingClient {
     count: usize,
   }
+
   impl Transport for CountingClient {
     fn send(
       &mut self,
