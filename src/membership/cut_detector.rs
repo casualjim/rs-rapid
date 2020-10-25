@@ -1,8 +1,9 @@
 use super::View;
 use super::K_MIN;
-use crate::errors::*;
+use crate::errors::RapidError::InvalidConstraints;
 use crate::remoting::Endpoint;
 use crate::remoting::{AlertMessage, EdgeStatus};
+use anyhow::Result;
 use std::collections::{HashMap, HashSet};
 
 ///
@@ -22,7 +23,7 @@ struct MultiNodeCutDetector {
   proposal_count: usize,
   updates_in_progress: usize,
   reports_per_host: HashMap<Endpoint, HashMap<i32, Endpoint>>,
-  proposal: Vec<Endpoint>,
+  proposal: HashSet<Endpoint>,
   pre_proposal: HashSet<Endpoint>,
   seen_link_down_events: bool,
 }
@@ -30,7 +31,7 @@ struct MultiNodeCutDetector {
 impl MultiNodeCutDetector {
   pub fn new(k: usize, h: usize, l: usize) -> Result<Self> {
     if h > k || l > h || k < K_MIN {
-      return Err(ErrorKind::InvalidConstraints(k, h, l).into());
+      return Err(InvalidConstraints(k, h, l).into());
     }
     Ok(MultiNodeCutDetector {
       k,
@@ -79,11 +80,13 @@ impl MultiNodeCutDetector {
     status: i32,
     ring_number: &i32,
   ) -> Vec<Endpoint> {
+    assert!(((*ring_number) as usize) < self.k);
+
     if status == EdgeStatus::Down as i32 {
       debug!("seen a link down event: {:?} > {:?}", edge_src, edge_dst);
       self.seen_link_down_events = true
     }
-    //    self.reports_per_host;
+
     edge_dst.map_or(vec![], |dst| {
       let edge_dst: Endpoint = dst.clone();
       let reports_for_host = self
@@ -121,7 +124,7 @@ impl MultiNodeCutDetector {
     }
 
     self.pre_proposal.remove(&dst);
-    self.proposal.push(dst);
+    self.proposal.insert(dst);
     self.updates_in_progress -= 1;
 
     if self.updates_in_progress > 0 {
@@ -129,12 +132,7 @@ impl MultiNodeCutDetector {
     }
 
     self.proposal_count += 1;
-    let result = std::mem::replace(&mut self.proposal, vec![]);
-    debug!(
-      "returning results because high watermark and there are no more updates in progress, results: {}",
-      result.len()
-    );
-    result
+    self.proposal.drain().collect()
   }
 
   /// Invalidates edges between nodes that are failing or have failed. This step may be skipped safely

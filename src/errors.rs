@@ -1,29 +1,19 @@
 use crate::{Endpoint, NodeId};
-error_chain! {
-  errors {
-    InvalidConstraints(k: usize, h: usize, l: usize) {
-      display("Arguments do not satisfy K >= 3 ∧ K > H >= L for (K: {}, H: {}, L: {})", k, h, l)
-    }
-    InvalidPermutations(k: usize) {
-      display("Ring permutations must be greater than 0 (K: {})", k)
-    }
-    UUIDAlreadySeen(node: Endpoint, node_id: NodeId) {
-      display("Endpoint add attempt with identifier already seen: {{ host: {}, identifier: {} }}", node, node_id)
-    }
-    NodeAlreadyInRing(node: Endpoint) {
-      display("Endpoint add attempt but was already seen: {{ host: {} }}", node)
-    }
-    NodeNotInRing(node: Endpoint) {
-      display("Endpoint not found: {{ host: {} }}", node)
-    }
-    InvalidAddr(addr: String) {
-      display("Invalid node address: {}", addr)
-    }
-  }
 
-  foreign_links {
-    Fmt(::std::fmt::Error);
-    Io(::std::io::Error);
-    Grpc(::grpcio::Error);
-  }
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum RapidError {
+  #[error("Arguments do not satisfy K >= 3 ∧ K > H >= L for (K: {0:?}, H: {1:?}, L: {2:?})")]
+  InvalidConstraints(usize, usize, usize),
+  #[error("Ring permutations must be greater than 0 (K: {0:?})")]
+  InvalidPermutations(usize),
+  #[error("Endpoint add attempt with identifier already seen: {{ host: {0:?}, identifier: {1:?} }}")]
+  UUIDAlreadySeen(Endpoint, NodeId),
+  #[error("Endpoint add attempt but was already seen: {{ host: {0:?} }}")]
+  NodeAlreadyInRing(Endpoint),
+  #[error("Endpoint not found: {{ host: {0:?} }}")]
+  NodeNotInRing(Endpoint),
+  #[error("Invalid node address: {0:?}")]
+  InvalidAddr(String),
 }

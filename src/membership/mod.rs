@@ -1,39 +1,15 @@
 mod cut_detector;
+mod fastpaxos;
 mod view;
 
 use self::view::View;
 use crate::errors;
 use crate::remoting::rapid_request::Content;
 use crate::remoting::{JoinResponse, PreJoinMessage, RapidRequest, RapidResponse};
-use crate::TransportFuture;
-use errors::Result;
+use anyhow::Result;
 use futures::{future, Future};
 
 const K_MIN: usize = 3;
-
-#[derive(Copy, Clone)]
-pub struct Service;
-
-impl Service {
-  pub fn handle_request(
-    &self,
-    request: &RapidRequest,
-  ) -> impl Future<Item = Result<RapidResponse>, Error = errors::Error> {
-    //    match request.content {
-    //      Some(ref cnt) => match cnt {
-    //        Content::PreJoinMessage(v) => self.handle_pre_join(v),
-    //        _ => future::ok(Ok(RapidResponse { content: None })),
-    //      },
-    //      None => future::err("e".into()),
-    //    }
-    future::err("not implemented".into())
-  }
-
-  fn handle_pre_join(&self, msg: &PreJoinMessage) -> impl Future<Item = Result<RapidResponse>, Error = errors::Error> {
-    use crate::remoting::rapid_response::Content;
-    future::ok(Ok(RapidResponse { content: None }))
-  }
-}
 
 #[cfg(test)]
 mod tests {
@@ -63,5 +39,4 @@ mod tests {
   pub fn localhost(port: u16) -> Endpoint {
     Endpoint::new("127.0.0.1", port)
   }
-
 }

@@ -2,27 +2,37 @@
 extern crate log;
 extern crate env_logger;
 
-use rs_rapid::{transport, Endpoint};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use rs_rapid::remoting::membership_service_server::{MembershipService, MembershipServiceServer};
+use rs_rapid::RapidResponse;
+use tonic::transport::Server;
 
-fn main() {
-  //  future::result()
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
   std::env::set_var("RUST_LOG", "info,server=debug,rs_rapid=debug");
   env_logger::init();
 
-  let running = Arc::new(AtomicBool::new(true));
-  let r = running.clone();
-  ctrlc::set_handler(move || {
-    r.store(false, Ordering::SeqCst);
-  })
-  .expect("Error setting Ctrl-C handler");
+  let addr = "[::]:3579".parse().unwrap();
 
-  let addr = Endpoint::new("localhost", 3579);
-  let cfg = transport::Config::new(addr);
-  let mut trans = transport::Transport::new(Arc::new(cfg));
-  trans.start().expect("unable to start server");
+  info!("MembershipService listening on: {}", addr);
 
-  while running.load(Ordering::SeqCst) {}
-  trans.stop();
+  Server::builder()
+    .add_service(MembershipServiceServer::new(RapidServer::default()))
+    .serve(addr)
+    .await?;
+
+  Ok(())
+}
+
+#[derive(Default)]
+struct RapidServer;
+
+#[tonic::async_trait]
+impl MembershipService for RapidServer {
+  async fn send_request(
+    &self,
+    _request: tonic::Request<rs_rapid::RapidRequest>,
+  ) -> Result<tonic::Response<rs_rapid::RapidResponse>, tonic::Status> {
+    info!("got a request: {:?}", _request);
+    Ok(tonic::Response::new(RapidResponse { content: None }))
+  }
 }

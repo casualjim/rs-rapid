@@ -1,6 +1,7 @@
-use crate::errors::{ErrorKind, Result};
+use crate::errors::RapidError;
 use crate::remoting::{Endpoint, JoinStatusCode, NodeId};
-use std::collections::{BTreeMap, BTreeSet};
+use anyhow::Result;
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::hash::Hash;
 use std::hash::Hasher;
 use std::ops::Bound::{Excluded, Unbounded};
@@ -117,6 +118,8 @@ pub struct View {
   k: usize,
   rings: Vec<EndpointRing>,
   seen_ids: BTreeSet<NodeId>,
+  cached_observers: HashMap<Endpoint, Vec<Endpoint>>,
+  all_nodes: HashSet<Endpoint>,
   current_configuration: Configuration,
   should_update_configuration: bool,
 }
@@ -124,7 +127,7 @@ pub struct View {
 impl View {
   pub fn new(k: usize, node_ids: Option<&[NodeId]>, endpoints: Option<&[Endpoint]>) -> Result<Self> {
     if k == 0 {
-      return Err(ErrorKind::InvalidPermutations(k).into());
+      return Err(RapidError::InvalidPermutations(k).into());
     }
 
     let mut rings: Vec<EndpointRing> = Vec::with_capacity(k);
@@ -142,6 +145,8 @@ impl View {
       k,
       seen_ids,
       rings,
+      cached_observers: HashMap::new(),
+      all_nodes: HashSet::new(),
       current_configuration: config,
       should_update_configuration: true,
     })
@@ -192,11 +197,11 @@ impl View {
   ///
   pub fn ring_add(&mut self, endpoint: Endpoint, id: NodeId) -> Result<()> {
     if self.is_identifier_present(&id) {
-      return Err(ErrorKind::UUIDAlreadySeen(endpoint, id).into());
+      return Err(RapidError::UUIDAlreadySeen(endpoint, id).into());
     }
 
     if self.is_host_present(&endpoint) {
-      return Err(ErrorKind::NodeAlreadyInRing(endpoint).into());
+      return Err(RapidError::NodeAlreadyInRing(endpoint).into());
     }
 
     for k in 0..self.k {
@@ -217,7 +222,7 @@ impl View {
   ///
   pub fn ring_del(&mut self, node: &Endpoint) -> Result<()> {
     if !self.is_host_present(node) {
-      return Err(ErrorKind::NodeNotInRing(node.clone()).into());
+      return Err(RapidError::NodeNotInRing(node.clone()).into());
     }
 
     for k in 0..self.k {
@@ -275,7 +280,7 @@ impl View {
   ///
   pub fn observers_of(&self, node: &Endpoint) -> Result<Vec<Endpoint>> {
     if !self.is_host_present(node) {
-      return Err(ErrorKind::NodeNotInRing(node.clone()).into());
+      return Err(RapidError::NodeNotInRing(node.clone()).into());
     }
 
     if self.rings[0].len() <= 1 {
@@ -296,7 +301,7 @@ impl View {
   ///
   pub fn subjects_of(&self, node: &Endpoint) -> Result<Vec<Endpoint>> {
     if !self.is_host_present(node) {
-      return Err(ErrorKind::NodeNotInRing(node.clone()).into());
+      return Err(RapidError::NodeNotInRing(node.clone()).into());
     }
 
     if self.rings[0].len() <= 1 {
@@ -346,11 +351,11 @@ impl View {
 
 #[cfg(test)]
 mod tests {
-  use crate::errors::Result;
   use crate::membership::tests::K;
   use crate::membership::tests::{init, localhost};
   use crate::membership::View;
   use crate::{Endpoint, NodeId};
+  use anyhow::Result;
   use spectral::prelude::*;
   use std::collections::HashSet;
   use std::iter::FromIterator;
@@ -452,21 +457,21 @@ mod tests {
 
     let n1 = localhost(1);
     let id1 = NodeId::new();
-    assert_that(&view.ring_add(n1.clone(), id1.clone())).is_ok();
+    assert!(&view.ring_add(n1.clone(), id1.clone()).is_ok());
 
     // Same host, same ID
-    assert_that(&view.ring_add(n1.clone(), id1.clone())).is_err();
+    assert!(&view.ring_add(n1.clone(), id1.clone()).is_err());
 
     // Same host, different ID
-    assert_that(&view.ring_add(n1.clone(), NodeId::new())).is_err();
+    assert!(&view.ring_add(n1.clone(), NodeId::new()).is_err());
 
     // different host, same ID
-    assert_that(&view.ring_add(localhost(2), id1.clone())).is_err();
+    assert!(&view.ring_add(localhost(2), id1.clone()).is_err());
 
     // different host, different ID
-    assert_that(&view.ring_add(localhost(2), NodeId::new())).is_ok();
+    assert!(&view.ring_add(localhost(2), NodeId::new()).is_ok());
 
-    assert_that(&view.ring(0)).has_length(2);
+    assert_that!(&view.ring(0)).has_length(2);
   }
 
   #[test]

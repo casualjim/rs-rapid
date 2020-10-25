@@ -6,16 +6,14 @@ option java_outer_classname = "Remoting";
 
 package remoting;
 
-// MembershipService transport
 service MembershipService {
   rpc sendRequest(RapidRequest) returns (RapidResponse) {}
 }
 
 message Endpoint {
 
-  string hostname = 1;
+  bytes hostname = 1;
   int32 port = 2;
-
 }
 
 // All-in-one message type.
@@ -30,6 +28,7 @@ message RapidRequest {
     Phase1bMessage phase1bMessage = 7;
     Phase2aMessage phase2aMessage = 8;
     Phase2bMessage phase2bMessage = 9;
+    LeaveMessage leaveMessage = 10;
   }
 }
 
@@ -72,7 +71,8 @@ message JoinResponse {
   int64 configurationId = 3;
   repeated Endpoint endpoints = 4;
   repeated NodeId identifiers = 5;
-  map<string, Metadata> clusterMetadata = 6;
+  repeated Endpoint metadataKeys = 6;
+  repeated Metadata metadataValues = 7;
 }
 
 enum JoinStatusCode {
@@ -153,6 +153,10 @@ message ConsensusResponse {}
 
 // ******* Node Metadata *********
 message Metadata { map<string, bytes> metadata = 1; }
+
+// ******* Leave protocol *******
+
+message LeaveMessage { Endpoint sender = 1; }
 
 // ******* Used by simple probing failure detector *******
 

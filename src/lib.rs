@@ -1,106 +1,40 @@
 // `error_chain!` can recurse deeply
 #![recursion_limit = "1024"]
-
-#[macro_use]
-extern crate error_chain;
+#![warn(clippy::all)]
 
 #[macro_use]
 extern crate log;
+
+#[macro_use]
+extern crate thiserror;
+
+#[macro_use]
+#[cfg(test)]
+extern crate spectral;
 
 use std::fmt::{Display, Formatter};
 use std::mem;
 use std::time::Duration;
 use uuid::Uuid;
+use std::convert::TryInto;
 
 pub mod errors;
 mod membership;
-pub mod transport;
+mod transport;
 
-mod remoting {
-  include!(concat!(env!("OUT_DIR"), "/remoting.rs"));
-
-  const METHOD_MEMBERSHIP_SERVICE_SEND_REQUEST: ::grpcio::Method<RapidRequest, RapidResponse> = ::grpcio::Method {
-    ty: ::grpcio::MethodType::Unary,
-    name: "/remoting.MembershipService/sendRequest",
-    req_mar: ::grpcio::Marshaller {
-      ser: ::grpcio::pr_ser,
-      de: ::grpcio::pr_de,
-    },
-    resp_mar: ::grpcio::Marshaller {
-      ser: ::grpcio::pr_ser,
-      de: ::grpcio::pr_de,
-    },
-  };
-
-  #[derive(Clone)]
-  pub struct MembershipServiceClient {
-    client: ::grpcio::Client,
-  }
-
-  impl MembershipServiceClient {
-    pub fn new(channel: ::grpcio::Channel) -> Self {
-      MembershipServiceClient {
-        client: ::grpcio::Client::new(channel),
-      }
-    }
-    pub fn send_request_opt(&self, req: &RapidRequest, opt: ::grpcio::CallOption) -> ::grpcio::Result<RapidResponse> {
-      self
-        .client
-        .unary_call(&METHOD_MEMBERSHIP_SERVICE_SEND_REQUEST, req, opt)
-    }
-    pub fn send_request(&self, req: &RapidRequest) -> ::grpcio::Result<RapidResponse> {
-      self.send_request_opt(req, ::grpcio::CallOption::default())
-    }
-    pub fn send_request_async_opt(
-      &self,
-      req: &RapidRequest,
-      opt: ::grpcio::CallOption,
-    ) -> ::grpcio::Result<::grpcio::ClientUnaryReceiver<RapidResponse>> {
-      self
-        .client
-        .unary_call_async(&METHOD_MEMBERSHIP_SERVICE_SEND_REQUEST, req, opt)
-    }
-    pub fn send_request_async(
-      &self,
-      req: &RapidRequest,
-    ) -> ::grpcio::Result<::grpcio::ClientUnaryReceiver<RapidResponse>> {
-      self.send_request_async_opt(req, ::grpcio::CallOption::default())
-    }
-    pub fn spawn<F>(&self, f: F)
-    where
-      F: ::futures::Future<Item = (), Error = ()> + Send + 'static,
-    {
-      self.client.spawn(f)
-    }
-  }
-
-  pub trait MembershipService {
-    fn send_request(&mut self, ctx: ::grpcio::RpcContext, req: RapidRequest, sink: ::grpcio::UnarySink<RapidResponse>);
-  }
-
-  pub fn create_membership_service<S: MembershipService + Send + Clone + 'static>(s: S) -> ::grpcio::Service {
-    let mut builder = ::grpcio::ServiceBuilder::new();
-    let mut instance = s;
-    builder = builder.add_unary_handler(&METHOD_MEMBERSHIP_SERVICE_SEND_REQUEST, move |ctx, req, resp| {
-      instance.send_request(ctx, req, resp)
-    });
-    builder.build()
-  }
+pub mod remoting {
+  tonic::include_proto!("remoting");
 }
-//mod remoting;
+// pub mod remoting;
 
 pub use crate::remoting::{Endpoint, NodeId};
 pub use crate::remoting::{RapidRequest, RapidResponse};
 
-use futures::Future;
-use std::convert::TryInto;
-
-type TransportFuture = dyn Future<Item = RapidResponse, Error = errors::Error> + Send;
 pub struct Cluster;
 
-pub trait Transport {
-  fn send(&mut self, to: &Endpoint, request: &RapidRequest, max_tries: usize) -> Box<TransportFuture>;
-}
+// pub trait Transport {
+//   fn send(&mut self, to: &Endpoint, request: &RapidRequest, max_tries: usize) -> Box<TransportFuture>;
+// }
 
 pub struct Config {
   // pub transport: TransportConfig,
@@ -145,7 +79,7 @@ impl AsRef<NodeId> for NodeId {
 }
 
 impl Endpoint {
-  pub fn new<T: Into<String>>(hostname: T, port: u16) -> Self {
+  pub fn new<T: Into<Vec<u8>>>(hostname: T, port: u16) -> Self {
     Endpoint {
       hostname: hostname.into(),
       port: port as i32,
@@ -155,7 +89,7 @@ impl Endpoint {
 
 impl Display for Endpoint {
   fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-    write!(f, "{}:{}", self.hostname, self.port)
+    write!(f, "{}:{}", std::str::from_utf8(&self.hostname).unwrap(), self.port)
   }
 }
 
@@ -191,7 +125,7 @@ mod tests {
     let value = format!(
       "{}",
       Endpoint {
-        hostname: "something".to_string(),
+        hostname: "something".as_bytes().to_vec(),
         port: 2446,
       }
     );
@@ -199,7 +133,7 @@ mod tests {
     assert_eq!(
       "something:2345",
       Endpoint {
-        hostname: "something".to_string(),
+        hostname: "something".as_bytes().to_vec(),
         port: 2345,
       }
       .to_string()

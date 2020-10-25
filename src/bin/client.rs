@@ -1,26 +1,30 @@
 #[macro_use]
 extern crate log;
 
+use anyhow::*;
 use futures::Future;
-use rs_rapid::Transport;
-use rs_rapid::{transport, Endpoint, RapidRequest};
+use rs_rapid::{
+  remoting::{membership_service_client::MembershipServiceClient, rapid_request, PreJoinMessage},
+  Endpoint, RapidRequest,
+};
 use std::sync::Arc;
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<()> {
   std::env::set_var("RUST_LOG", "info,client=debug,rs_rapid=debug");
   env_logger::init();
 
-  //  let env = Arc::new(EnvBuilder::new().build());
-  //  let ch = ChannelBuilder::new(env).reuse_port(true).connect("localhost:3579");
-  //  let client = MembershipServiceClient::new(ch);
-  let addr = Endpoint::new("localhost", 3579);
-  let cfg = transport::Config::new(addr.clone());
-  let mut trans = transport::Transport::new(Arc::new(cfg));
-
-  trans
-    .send(&addr, &RapidRequest { content: None }, 1)
-    .map(|res| info!("got response: {:?}", res))
-    .map_err(|e| error!("failed to get response: {:?}", e))
-    .wait()
-    .expect("failed to get result");
+  let addr = "grpc://localhost:3579";
+  let mut client = MembershipServiceClient::connect(addr).await?;
+  let req = tonic::Request::new(RapidRequest {
+    content: Some(rapid_request::Content::PreJoinMessage(PreJoinMessage {
+      configuration_id: 1,
+      ring_number: vec![1],
+      node_id: None,
+      sender: None,
+    })),
+  });
+  client.send_request(req).await?;
+  info!("running client");
+  Ok(())
 }

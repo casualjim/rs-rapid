@@ -11,21 +11,29 @@ build = "build.rs"
 bytes = "^0.4"
 error-chain = "^0.12"
 uuid = { version = "^0.7", features = ["serde", "v4", "v3"] }
-prost = "^0.5"
 log = "^0.4"
 twox-hash = "^1.4"
-tokio = "0.1.22"
 futures = "^0.1"
 env_logger = "^0.6"
 ctrlc = "^3.1"
-grpcio = { git="https://github.com/pingcap/grpc-rs", features=["prost-codec", "secure"] }
+tonic = { version = "0.3", features = ["tls", "tls-roots", "prost"] }
+prost = "0.6"
+tokio = { version = "0.2", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+anyhow = "1"
+thiserror = "1"
+async-trait = "0.1"
 
 [dev-dependencies]
+hamcrest2 = "*"
+tempfile = "3.1.0"
+fake = { version="^2.2", features=["derive"] }
+test-env-log = "^0.1"
+rcgen = "^0.7"
 spectral = "*"
 
 [build-dependencies]
-prost-build = "^0.5"
-grpcio-compiler = { git="https://github.com/pingcap/grpc-rs", features=["prost-codec"] }
+tonic-build = "^0.3"
 
 [[bin]]
 name = "server"
